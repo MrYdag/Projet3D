@@ -1,10 +1,14 @@
 #include <cmath>
 #include "tgaimage.h"
+#include "objet.h"
 
 const TGAColor white = TGAColor(255, 255, 255, 255);
 const TGAColor red   = TGAColor(255, 0,   0,   255);
 const TGAColor blue   = TGAColor( 0, 0,   255,   255);
 const TGAColor green   = TGAColor(0, 255,   0,   255);
+
+const int width = 800;
+const int height = 800;
 
 void line(int x0, int y0, int x1, int y1, TGAImage &image, TGAColor color) {
 
@@ -40,16 +44,16 @@ void line(int x0, int y0, int x1, int y1, TGAImage &image, TGAColor color) {
 
 
 int main(int argc, char** argv) {
-    TGAImage image(100, 100, TGAImage::RGB);
-    for (int i=0; i<1000000; i++) {
-        line(13, 20, 80, 40, image, white);
-        line(20, 13, 40, 80, image, red);
-        line(80, 40, 13, 20, image, green);
-        line(20,50,80,50,image,blue);
+    TGAImage image(width, height, TGAImage::RGB);
 
-
+    Objet *objet = new Objet("obj/head.obj");
+    for(int i = 0; i< objet->nverts(); i++){
+        Vec3f v = objet->getVertice(i);
+        int x0 = (v.x+1)*width/2;
+        int y0 = (v.y+1)*height/2;
+        image.set(x0,y0,white);
     }
-    image.flip_vertically(); // i want to have the origin at the left bottom corner of the image
+
     image.write_tga_file("output.tga");
 
     return 0;
