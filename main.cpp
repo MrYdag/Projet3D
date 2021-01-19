@@ -42,18 +42,31 @@ void line(int x0, int y0, int x1, int y1, TGAImage &image, TGAColor color) {
     }
 }
 
+void triangle(Vec2i p1, Vec2i p2, Vec2i p3, TGAImage &image, TGAColor color){
+    line(p1.x,p1.y,p2.x,p2.y, image,color);
+    line(p3.x,p3.y,p2.x,p2.y, image,color);
+    line(p1.x,p1.y,p3.x,p3.y, image,color);
+}
+
 
 int main(int argc, char** argv) {
     TGAImage image(width, height, TGAImage::RGB);
 
     Objet *objet = new Objet("obj/head.obj");
-    for(int i = 0; i< objet->nverts(); i++){
-        Vec3f v = objet->getVertice(i);
-        int x0 = (v.x+1)*width/2;
-        int y0 = (v.y+1)*height/2;
-        image.set(x0,y0,white);
-    }
+    for(int i = 0; i< objet->nfaces(); i++){
+        std::vector<int> list = objet->getFace(i);
 
+        Vec3f v1 = objet->getVertice(list[0]);
+        Vec3f v2 = objet->getVertice(list[1]);
+        Vec3f v3 = objet->getVertice(list[2]);
+        int x0 = (v1.x+1.)*width/2.;
+        int y0 = (v1.y+1.)*height/2.;
+        int x1 = (v2.x+1.)*width/2.;
+        int y1 = (v2.y+1.)*height/2.;
+        int x2 = (v3.x+1.)*width/2.;
+        int y2 = (v3.y+1.)*height/2.;
+        triangle(Vec2i(x0, y0), Vec2i(x1, y1), Vec2i(x2, y2),image,white);
+    }
     image.write_tga_file("output.tga");
 
     return 0;
