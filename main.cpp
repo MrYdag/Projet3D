@@ -96,6 +96,7 @@ int main(int argc, char** argv) {
     TGAImage image(width, height, TGAImage::RGB);
 
     Objet *objet = new Objet("obj/head.obj");
+    Vec3f light_dir(0,0,-1);
     for(int i = 0; i< objet->nfaces(); i++){
         std::vector<int> list = objet->getFace(i);
 
@@ -108,7 +109,14 @@ int main(int argc, char** argv) {
         int y1 = (v2.y+1.)*height/2.;
         int x2 = (v3.x+1.)*width/2.;
         int y2 = (v3.y+1.)*height/2.;
-        triangle(Vec2i(x0, y0), Vec2i(x1, y1), Vec2i(x2, y2),image,TGAColor(rand()%255, rand()%255, rand()%255, 255));
+
+        //Calcul de la lumiere
+        Vec3f n = (v3-v1)^(v2-v1);
+        n.normalize();
+        float intensity = n*light_dir;
+        if(intensity > 0){
+            triangle(Vec2i(x0, y0), Vec2i(x1, y1), Vec2i(x2, y2),image,TGAColor(intensity*255, intensity*255, intensity*255, 255));
+        }
     }
     image.write_tga_file("output.tga");
 
