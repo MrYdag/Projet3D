@@ -1,6 +1,7 @@
 #include <cmath>
 #include "tgaimage.h"
 #include "objet.h"
+#include <limits>
 
 const TGAColor white = TGAColor(255, 255, 255, 255);
 const TGAColor red   = TGAColor(255, 0,   0,   255);
@@ -9,6 +10,9 @@ const TGAColor green   = TGAColor(0, 255,   0,   255);
 
 const int width = 800;
 const int height = 800;
+const int depth = 255;
+float *zbuffer = new float [width*height];
+
 
 void line(int x0, int y0, int x1, int y1, TGAImage &image, TGAColor color) {
 
@@ -42,6 +46,15 @@ void line(int x0, int y0, int x1, int y1, TGAImage &image, TGAColor color) {
     }
 }
 
+
+Vec3f barycentric(Vec3f p1, Vec3f p2, Vec3f p3, Vec3f P) {
+    Vec3f u = cross(Vec3f(p3.x-p1.x, p2.x-p1.x, p1.x-P.x), Vec3f(p3.y-p1.y, p2.y-p1.y,p1.y-P.y));
+    if (std::abs(u[2])<1) return Vec3f(-1,1,1);
+    return Vec3f(1.f-(u.x+u.y)/u.z, u.y/u.z, u.x/u.z);
+}
+
+//Triangle en coupant le triangle en deux et en coloriant les deux parties
+/*
 void triangle(Vec2i p1, Vec2i p2, Vec2i p3, TGAImage &image, TGAColor color){
 
     //On prend en compte le cas où nous avont un triangle plat
@@ -81,14 +94,43 @@ void triangle(Vec2i p1, Vec2i p2, Vec2i p3, TGAImage &image, TGAColor color){
         }
     }
 
+}
+*/
 
+/**
+ *
+ * @param p1 Point1
+ * @param p2 Point2
+ * @param p3 Point3
+ * @param zbuffer
+ * @param image
+ * @param color couleur du triangle
+ */
+void triangle(Vec3f p1,Vec3f p2,Vec3f p3,float *zbuffer, TGAImage &image, TGAColor color) {
+    Vec3f pts[3] = {p1,p2,p3};
 
-
-    /*
-    line(p1.x,p1.y,p2.x,p2.y, image,color);
-    line(p3.x,p3.y,p2.x,p2.y, image,color);
-    line(p1.x,p1.y,p3.x,p3.y, image,color);
-     */
+    Vec2f bboxmin( std::numeric_limits<float>::max(),  std::numeric_limits<float>::max());
+    Vec2f bboxmax(-std::numeric_limits<float>::max(), -std::numeric_limits<float>::max());
+    Vec2f clamp(image.get_width()-1, image.get_height()-1);
+    for (int i=0; i<3; i++) {
+        for (int j=0; j<2; j++) {
+            bboxmin[j] = std::max(0.f,        std::min(bboxmin[j], pts[i][j]));
+            bboxmax[j] = std::min(clamp[j], std::max(bboxmax[j], pts[i][j]));
+        }
+    }
+    Vec3f P;
+    for (P.x=bboxmin.x; P.x<=bboxmax.x; P.x++) {
+        for (P.y=bboxmin.y; P.y<=bboxmax.y; P.y++) {
+            Vec3f bc_screen  = barycentric(p1,p2,p3, P);
+            if (bc_screen.x<0 || bc_screen.y<0 || bc_screen.z<0) continue;
+            P.z = 0;
+            for (int i=0; i<3; i++) P.z += pts[i][2]*bc_screen[i];
+            if (zbuffer[int(P.x+P.y*width)]<P.z) {
+                zbuffer[int(P.x+P.y*width)] = P.z;
+                image.set(P.x, P.y, color);
+            }
+        }
+    }
 }
 
 
@@ -97,6 +139,9 @@ int main(int argc, char** argv) {
 
     Objet *objet = new Objet("obj/head.obj");
     Vec3f light_dir(0,0,-1);
+
+    for (int i=width*height; i--; zbuffer[i] = -std::numeric_limits<float>::max());
+
     for(int i = 0; i< objet->nfaces(); i++){
         std::vector<int> list = objet->getFace(i);
 
@@ -105,20 +150,25 @@ int main(int argc, char** argv) {
         Vec3f v3 = objet->getVertice(list[2]);
         int x0 = (v1.x+1.)*width/2.;
         int y0 = (v1.y+1.)*height/2.;
+        int z0 = (v1.z+1)*depth/2;
         int x1 = (v2.x+1.)*width/2.;
         int y1 = (v2.y+1.)*height/2.;
+        int z1 = (v2.z+1)*depth/2;
         int x2 = (v3.x+1.)*width/2.;
         int y2 = (v3.y+1.)*height/2.;
+        int z2 = (v3.z+1)*depth/2;
 
         //Calcul de la lumiere
-        Vec3f n = (v3-v1)^(v2-v1);
+        Vec3f n = cross ((v3-v1), (v2-v1));
         n.normalize();
         float intensity = n*light_dir;
         if(intensity > 0){
-            triangle(Vec2i(x0, y0), Vec2i(x1, y1), Vec2i(x2, y2),image,TGAColor(intensity*255, intensity*255, intensity*255, 255));
+            triangle(Vec3f(x0, y0,z0), Vec3f(x1, y1,z1), Vec3f(x2, y2,z2),zbuffer,image,TGAColor(intensity*255, intensity*255, intensity*255, 255));
         }
     }
     image.write_tga_file("output.tga");
 
+    delete objet;
+    delete [] zbuffer;
     return 0;
 }
