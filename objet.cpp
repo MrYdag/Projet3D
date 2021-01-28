@@ -23,19 +23,32 @@ Objet::Objet(const char *filename) {
             iss >> trash;
             Vec3f v;
             for (int i = 0; i < 3; i++) {
-                iss >> v.raw[i];
+                iss >> v[i];
             }
             verts_.push_back(v);
         }
         if (!line.compare(0, 2, "f ")) { //Ligne qui commence par f: les triangles
             std::vector<int>f;
-            int itrash, idx;
+            std::vector<int>f2;
+            int itrash, idx, idx2;
             iss >> trash;
-            while (iss >> idx >> trash >> itrash >> trash >> itrash) {
+            while (iss >> idx >> trash >> idx2 >> trash >> itrash) {
                 idx--; // in wavefront obj all indices start at 1, not zero
+                idx2--;
                 f.push_back(idx);
+                f2.push_back(idx2);
             }
             faces_.push_back(f);
+            faces_texture.push_back(f2);
+        }
+        if (!line.compare(0, 3, "vt ")) { //Ligne qui commence par vt: les textures
+            iss >> trash;
+            iss >> trash;
+            Vec3f vt;
+            for (int i = 0; i < 3; i++) {
+                iss >> vt[i];
+            }
+            texture.push_back(vt);
         }
     }
 }
@@ -56,5 +69,14 @@ std::vector<int> Objet::getFace(int i) {
 int Objet::nfaces() {
     return (int)faces_.size();
 }
+
+std::vector<int> Objet::getFaceTexture(int i) {
+    return faces_texture[i];
+}
+
+Vec3f Objet::getTexture(int i) {
+    return texture[i];
+}
+
 
 

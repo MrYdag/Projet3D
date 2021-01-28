@@ -13,6 +13,10 @@ const int height = 800;
 const int depth = 255;
 float *zbuffer = new float [width*height];
 
+//test
+TGAImage texture;
+
+
 
 void line(int x0, int y0, int x1, int y1, TGAImage &image, TGAColor color) {
 
@@ -106,7 +110,8 @@ void triangle(Vec2i p1, Vec2i p2, Vec2i p3, TGAImage &image, TGAColor color){
  * @param image
  * @param color couleur du triangle
  */
-void triangle(Vec3f p1,Vec3f p2,Vec3f p3,float *zbuffer, TGAImage &image, TGAColor color) {
+void triangle(Vec3f p1,Vec3f p2,Vec3f p3,float *zbuffer, Vec3f ptsTexture[3],TGAImage &image, float intensity) {
+
     Vec3f pts[3] = {p1,p2,p3};
 
     Vec2f bboxmin( std::numeric_limits<float>::max(),  std::numeric_limits<float>::max());
@@ -122,12 +127,18 @@ void triangle(Vec3f p1,Vec3f p2,Vec3f p3,float *zbuffer, TGAImage &image, TGACol
     for (P.x=bboxmin.x; P.x<=bboxmax.x; P.x++) {
         for (P.y=bboxmin.y; P.y<=bboxmax.y; P.y++) {
             Vec3f bc_screen  = barycentric(p1,p2,p3, P);
+
             if (bc_screen.x<0 || bc_screen.y<0 || bc_screen.z<0) continue;
             P.z = 0;
             for (int i=0; i<3; i++) P.z += pts[i][2]*bc_screen[i];
             if (zbuffer[int(P.x+P.y*width)]<P.z) {
                 zbuffer[int(P.x+P.y*width)] = P.z;
-                image.set(P.x, P.y, color);
+
+                double u = bc_screen[0]*ptsTexture[0].x + bc_screen[1]*ptsTexture[1].x + bc_screen[2]*ptsTexture[2].x;
+                double v = bc_screen[0]*ptsTexture[0].y + bc_screen[1]*ptsTexture[1].y + bc_screen[2]*ptsTexture[2].y;
+
+                TGAColor color = texture.get(u*texture.get_width(),v*texture.get_height());
+                image.set(P.x, P.y, color*intensity);
             }
         }
     }
@@ -137,6 +148,9 @@ void triangle(Vec3f p1,Vec3f p2,Vec3f p3,float *zbuffer, TGAImage &image, TGACol
 int main(int argc, char** argv) {
     TGAImage image(width, height, TGAImage::RGB);
 
+    texture.read_tga_file("obj/head.tga");
+    texture.flip_vertically();
+
     Objet *objet = new Objet("obj/head.obj");
     Vec3f light_dir(0,0,-1);
 
@@ -144,10 +158,15 @@ int main(int argc, char** argv) {
 
     for(int i = 0; i< objet->nfaces(); i++){
         std::vector<int> list = objet->getFace(i);
+        std::vector<int> listTexture = objet->getFaceTexture(i);
 
         Vec3f v1 = objet->getVertice(list[0]);
         Vec3f v2 = objet->getVertice(list[1]);
         Vec3f v3 = objet->getVertice(list[2]);
+        Vec3f ptsTexture[3];
+        ptsTexture[0] = objet->getTexture(listTexture[0]);
+        ptsTexture[1] = objet->getTexture(listTexture[1]);
+        ptsTexture[2] = objet->getTexture(listTexture[2]);
         int x0 = (v1.x+1.)*width/2.;
         int y0 = (v1.y+1.)*height/2.;
         int z0 = (v1.z+1)*depth/2;
@@ -163,7 +182,7 @@ int main(int argc, char** argv) {
         n.normalize();
         float intensity = n*light_dir;
         if(intensity > 0){
-            triangle(Vec3f(x0, y0,z0), Vec3f(x1, y1,z1), Vec3f(x2, y2,z2),zbuffer,image,TGAColor(intensity*255, intensity*255, intensity*255, 255));
+            triangle(Vec3f(x0, y0,z0), Vec3f(x1, y1,z1), Vec3f(x2, y2,z2),zbuffer, ptsTexture,image,intensity);
         }
     }
     image.write_tga_file("output.tga");
