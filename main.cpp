@@ -14,7 +14,8 @@ const int depth = 255;
 float *zbuffer = new float [width*height];
 
 Vec3f light_dir(0,0,-1);
-Vec3f camera(0,0,3);
+Vec3f camera(1,1,3);
+Vec3f center(0,0,0);
 
 //test
 TGAImage texture;
@@ -55,6 +56,20 @@ Matrix viewport(int x, int y, int w, int h) {
     m[1][1] = h/2.f;
     m[2][2] = depth/2.f;
     return m;
+}
+
+Matrix lookat(Vec3f eye, Vec3f center, Vec3f up) {
+    Vec3f z = (eye-center).normalize();
+    Vec3f x = cross(up,z).normalize();
+    Vec3f y = cross(z,x).normalize();
+    Matrix res = Matrix::identity(4);
+    for (int i=0; i<3; i++) {
+        res[0][i] = x[i];
+        res[1][i] = y[i];
+        res[2][i] = z[i];
+        res[i][3] = -center[i];
+    }
+    return res;
 }
 /////////////////////////
 
@@ -185,15 +200,19 @@ void triangle(Vec3i p1,Vec3i p2,Vec3i p3,float *zbuffer, Vec3f ptsTexture[3],TGA
 int main(int argc, char** argv) {
     TGAImage image(width, height, TGAImage::RGB);
 
+    Matrix ModelView = lookat(camera,center,Vec3f(0,1,0));
+
     Matrix Projection = Matrix::identity(4);
     Matrix ViewPort   = viewport(width/8, height/8, width*3/4, height*3/4);
-    Projection[3][2] = -1.f/camera.z;
+    Projection[3][2] = -1.f/(camera-center).norm();
 
     texture.read_tga_file("obj/head.tga");
     texture.flip_vertically();
 
     Objet *objet = new Objet("obj/head.obj");
     Vec3f light_dir(0,0,-1);
+
+
 
     for (int i=width*height; i--; zbuffer[i] = -std::numeric_limits<float>::max());
 
@@ -210,7 +229,7 @@ int main(int argc, char** argv) {
         for (int i = 0; i<3;i++){
             v[i] = objet->getVertice(list[i]);
 
-            screen_coords[i] = m2v(ViewPort*Projection*v2m(v[i]));
+            screen_coords[i] = m2v(ViewPort*Projection*ModelView*v2m(v[i]));
             screen_coords_f[i] = m2v(ViewPort*Projection*v2m(v[i]),"");
 
             ptsTexture[i] = objet->getTexture(listTexture[i]);
