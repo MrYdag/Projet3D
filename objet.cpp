@@ -78,5 +78,10 @@ Vec3f Objet::getTexture(int i) {
     return texture[i];
 }
 
+Vec3f Objet::norm(int iface, int nvert) {
+    int idx = faces_[iface][nvert];
+    return norms_[idx].normalize();
+}
+
 
 

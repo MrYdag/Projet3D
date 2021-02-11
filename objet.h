@@ -14,6 +14,7 @@ private:
     std::vector<std::vector<int>> faces_; //liste des triangles
     std::vector<Vec3f> texture; //texture de l'image
     std::vector<std::vector<int>> faces_texture; //liste des textures
+    std::vector<Vec3f> norms_;
 public:
     Objet(const char *filename);
     int nverts();
@@ -22,6 +23,7 @@ public:
     std::vector<int> getFace(int i);
     std::vector<int> getFaceTexture(int i);
     Vec3f getTexture(int i);
+    Vec3f norm(int iface, int nvert);
 
 };
 

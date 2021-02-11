@@ -13,7 +13,7 @@ const int height = 800;
 const int depth = 255;
 float *zbuffer = new float [width*height];
 
-Vec3f light_dir(0,0,-1);
+Vec3f light_dir = Vec3f(0,2,-5).normalize(); //todo changer le produit de matrice pour que les coordonnées soient positives
 Vec3f camera(1,1,3);
 Vec3f center(0,0,0);
 
@@ -161,6 +161,7 @@ void triangle(Vec2i p1, Vec2i p2, Vec2i p3, TGAImage &image, TGAColor color){
  * @param image
  * @param color couleur du triangle
  */
+
 void triangle(Vec3i p1,Vec3i p2,Vec3i p3,float *zbuffer, Vec3f ptsTexture[3],TGAImage &image, float intensity) {
 
     Vec3i pts[3] = {p1,p2,p3};
@@ -210,11 +211,10 @@ int main(int argc, char** argv) {
     texture.flip_vertically();
 
     Objet *objet = new Objet("obj/head.obj");
-    Vec3f light_dir(0,0,-1);
 
 
+    for (int i=width*height; i--;zbuffer[i] = -std::numeric_limits<float>::max());
 
-    for (int i=width*height; i--; zbuffer[i] = -std::numeric_limits<float>::max());
 
     for(int i = 0; i< objet->nfaces(); i++){
         std::vector<int> list = objet->getFace(i);
@@ -226,13 +226,14 @@ int main(int argc, char** argv) {
 
         Vec3i screen_coords[3];
         Vec3f screen_coords_f[3];
-        for (int i = 0; i<3;i++){
-            v[i] = objet->getVertice(list[i]);
+        //float intensity[3];
+        for (int j = 0; j<3;j++){
+            v[j] = objet->getVertice(list[j]);
 
-            screen_coords[i] = m2v(ViewPort*Projection*ModelView*v2m(v[i]));
-            screen_coords_f[i] = m2v(ViewPort*Projection*v2m(v[i]),"");
+            screen_coords[j] = m2v(ViewPort*Projection*ModelView*v2m(v[j]));
+            screen_coords_f[j] = m2v(ViewPort*Projection*v2m(v[j]),"");
 
-            ptsTexture[i] = objet->getTexture(listTexture[i]);
+            ptsTexture[j] = objet->getTexture(listTexture[j]);
 
         }
 
@@ -241,12 +242,26 @@ int main(int argc, char** argv) {
         n.normalize();
         float intensity = n *light_dir;
 
-        if(intensity > 0){
             triangle(screen_coords[0], screen_coords[1], screen_coords[2],zbuffer, ptsTexture,image,intensity);
-        }
     }
     image.write_tga_file("output.tga");
 
+    //Affichage du Zbuffer
+    float zmin = +std::numeric_limits<float>::max();
+    float zmax = -std::numeric_limits<float>::max();
+    for (int i=width*height; i--;) {
+        if (zbuffer[i]!=-std::numeric_limits<float>::max())
+            zmin = std::min(zmin, zbuffer[i]);
+        zmax = std::max(zmax, zbuffer[i]);
+    }
+    std::cerr << zmin << " " << zmax << std::endl;
+
+    TGAImage zimg(width, height, TGAImage::GRAYSCALE);
+    for (int i=width*height; i--;) {
+        zimg.set(i%width, i/width, TGAColor(255*((zbuffer[i]-zmin)/(zmax-zmin))));
+    }
+    zimg.write_tga_file("zbuffer.tga");
+    //
     delete objet;
     delete [] zbuffer;
     return 0;
