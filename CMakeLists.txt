@@ -3,4 +3,4 @@ project(Projet3D)
 
 set(CMAKE_CXX_STANDARD 14)
 
-add_executable(Projet3D main.cpp tgaimage.cpp tgaimage.h objet.cpp objet.h)
+add_executable(Projet3D tgaimage.cpp tgaimage.h objet.cpp objet.h main.cpp geometry.cpp)
