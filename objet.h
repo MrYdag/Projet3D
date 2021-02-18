@@ -7,6 +7,7 @@
 
 #include <vector>
 #include "geometry.h"
+#include "tgaimage.h"
 
 class Objet {
 private:
@@ -16,7 +17,10 @@ private:
     std::vector<std::vector<int>> faces_texture; //liste des textures
     
     std::vector<Vec3f> vecnorm; //texture de l'image
-    std::vector<std::vector<int>> faces_norm; //liste des textures
+    std::vector<std::vector<int>> faces_norm; //liste des vecteurs normaux
+    std::vector<std::vector<int>> faces_norm_map; //liste des vecteur normaux avec la map
+    
+    TGAImage normalmap_;
     
 public:
     Objet(const char *filename);
@@ -27,6 +31,9 @@ public:
     std::vector<int> getFaceTexture(int i);
     Vec3f getTexture(int i);
     Vec3f norm(int iface, int nvert);
+    Vec3f normmap(int iface, int nvert);
+    
+    Vec3f normal(Vec2f uvf);
 
 };
 

@@ -8,7 +8,7 @@
 #include <string>
 #include "objet.h"
 
-Objet::Objet(const char *filename) {
+Objet::Objet(const char *filename) : normalmap_() {
     std::ifstream in;
     in.open(filename,std::ifstream::in);
     if(in.fail()) {
@@ -64,7 +64,11 @@ Objet::Objet(const char *filename) {
             }
             vecnorm.push_back(vn);
         }
+        
     }
+    
+    normalmap_.read_tga_file("obj/headNM.tga");
+    normalmap_.flip_vertically();
 }
 
 Vec3f Objet::getVertice(int i) {
@@ -95,6 +99,15 @@ Vec3f Objet::getTexture(int i) {
 Vec3f Objet::norm(int iface, int nvert) {
     int idx = faces_norm[iface][nvert];
     return vecnorm[idx].normalize();
+}
+
+Vec3f Objet::normal(Vec2f uvf) {
+    Vec2i uv(uvf[0]*normalmap_.get_width(), uvf[1]*normalmap_.get_height());
+    TGAColor c = normalmap_.get(uv[0], uv[1]);
+    Vec3f res;
+    for (int i=0; i<3; i++)
+        res[2-i] = (float)c[i]/255.f*2.f - 1.f;
+    return res;
 }
 
 

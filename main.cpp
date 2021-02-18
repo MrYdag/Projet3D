@@ -17,8 +17,11 @@ Vec3f light_dir = Vec3f(0,2,-5).normalize(); //todo changer le produit de matric
 Vec3f camera(1,1,3);
 Vec3f center(0,0,0);
 
-//test
+//texture du modele
 TGAImage texture;
+
+//normal map du modele
+TGAImage normalMapping;
 
 ///////////////////////
 
@@ -179,7 +182,7 @@ void triangle(Vec2i p1, Vec2i p2, Vec2i p3, TGAImage &image, TGAColor color){
  * @param color couleur du triangle
  */
 
-void triangle(Vec3i p1,Vec3i p2,Vec3i p3,float *zbuffer, Vec3f ptsTexture[3],Vec3f vecnorm[3],TGAImage &image, float intensity) {
+void triangle(Vec3i p1,Vec3i p2,Vec3i p3,float *zbuffer, Vec3f ptsTexture[3],Vec3f vecnorm[3],TGAImage &image, float intensity, Objet * objet) {
 
     Vec3i pts[3] = {p1,p2,p3};
 
@@ -210,7 +213,8 @@ void triangle(Vec3i p1,Vec3i p2,Vec3i p3,float *zbuffer, Vec3f ptsTexture[3],Vec
                 double ny = bc_screen[0]*vecnorm[0].y + bc_screen[1]*vecnorm[1].y + bc_screen[2]*vecnorm[2].y;
                 double nz = bc_screen[0]*vecnorm[0].z + bc_screen[1]*vecnorm[1].z + bc_screen[2]*vecnorm[2].z;
                 
-                Vec3f n = Vec3f(nx,ny,nz).normalize();
+                //Vec3f n = Vec3f(nx,ny,nz).normalize();
+                Vec3f n = objet->normal(Vec2f(u,v));
                 double intensity2 = -(n*light_dir);
 
                 TGAColor color = texture.get(u*texture.get_width(),v*texture.get_height());
@@ -269,8 +273,7 @@ int main(int argc, char** argv) {
         Vec3f n = cross ((screen_coords_f[2]-screen_coords_f[0]), (screen_coords_f[1]-screen_coords_f[0]));
         n.normalize();
         float intensity = n *light_dir;
-
-            triangle(screen_coords[0], screen_coords[1], screen_coords[2],zbuffer, ptsTexture, vecnorm ,image,intensity);
+        triangle(screen_coords[0], screen_coords[1], screen_coords[2],zbuffer, ptsTexture, vecnorm ,image,intensity, objet);
     }
     image.write_tga_file("output.tga");
 
