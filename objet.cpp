@@ -30,16 +30,20 @@ Objet::Objet(const char *filename) {
         if (!line.compare(0, 2, "f ")) { //Ligne qui commence par f: les triangles
             std::vector<int>f;
             std::vector<int>f2;
-            int itrash, idx, idx2;
+            std::vector<int>f3;
+            int itrash, idx, idx2, idx3;
             iss >> trash;
-            while (iss >> idx >> trash >> idx2 >> trash >> itrash) {
+            while (iss >> idx >> trash >> idx2 >> trash >> idx3) {
                 idx--; // in wavefront obj all indices start at 1, not zero
                 idx2--;
+                idx3--;
                 f.push_back(idx);
                 f2.push_back(idx2);
+                f3.push_back(idx3);
             }
             faces_.push_back(f);
             faces_texture.push_back(f2);
+            faces_norm.push_back(f3);
         }
         if (!line.compare(0, 3, "vt ")) { //Ligne qui commence par vt: les textures
             iss >> trash;
@@ -49,6 +53,16 @@ Objet::Objet(const char *filename) {
                 iss >> vt[i];
             }
             texture.push_back(vt);
+        }
+        
+        if (!line.compare(0, 3, "vn ")) { //Ligne qui commence par vt: les textures
+            iss >> trash;
+            iss >> trash;
+            Vec3f vn;
+            for (int i = 0; i < 3; i++) {
+                iss >> vn[i];
+            }
+            vecnorm.push_back(vn);
         }
     }
 }
@@ -79,8 +93,8 @@ Vec3f Objet::getTexture(int i) {
 }
 
 Vec3f Objet::norm(int iface, int nvert) {
-    int idx = faces_[iface][nvert];
-    return norms_[idx].normalize();
+    int idx = faces_norm[iface][nvert];
+    return vecnorm[idx].normalize();
 }
 
 

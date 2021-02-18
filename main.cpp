@@ -22,11 +22,15 @@ TGAImage texture;
 
 ///////////////////////
 
+/**
+ * Creer un vecteur Vec3i à partir d'une matrice m
+ */
 Vec3i m2v(Matrix m) {
     float rapport = m[3][0];
     return Vec3i(m[0][0]/rapport, m[1][0]/rapport, m[2][0]/rapport);
 }
 /**
+ * Creer un vecteur Vec3f à partir d'une matrice m
  * Ceci est extremement moche, mais vu qu'on ne peux pas cast un Vec3f en Vec3i ...
  * @param m
  * @param a
@@ -37,6 +41,9 @@ Vec3f m2v(Matrix m, std::string a) {
     return Vec3f(m[0][0]/rapport, m[1][0]/rapport, m[2][0]/rapport);
 }
 
+/**
+ * Creer une matrice m à partir d'un vecteur Vec3f
+ */ 
 Matrix v2m(Vec3f v) {
     Matrix m(4, 1);
     m[0][0] = v.x;
@@ -46,6 +53,9 @@ Matrix v2m(Vec3f v) {
     return m;
 }
 
+/**
+ * 
+ */
 Matrix viewport(int x, int y, int w, int h) {
     Matrix m = Matrix::identity(4);
     m[0][3] = x+w/2.f;
@@ -58,6 +68,9 @@ Matrix viewport(int x, int y, int w, int h) {
     return m;
 }
 
+/**
+ * 
+ */
 Matrix lookat(Vec3f eye, Vec3f center, Vec3f up) {
     Vec3f z = (eye-center).normalize();
     Vec3f x = cross(up,z).normalize();
@@ -74,7 +87,9 @@ Matrix lookat(Vec3f eye, Vec3f center, Vec3f up) {
 /////////////////////////
 
 
-
+/**
+ * Trace une ligne de couleur entre deux points
+ */
 void line(int x0, int y0, int x1, int y1, TGAImage &image, TGAColor color) {
 
     bool steep = false;
@@ -107,7 +122,9 @@ void line(int x0, int y0, int x1, int y1, TGAImage &image, TGAColor color) {
     }
 }
 
-
+/**
+ * Calcul le barycentre d'un triangle
+ */
 Vec3f barycentric(Vec3i p1, Vec3i p2, Vec3i p3, Vec3f P) {
     Vec3f u = cross(Vec3f(p3.x-p1.x, p2.x-p1.x, p1.x-P.x), Vec3f(p3.y-p1.y, p2.y-p1.y,p1.y-P.y));
     if (std::abs(u[2])<1) return Vec3f(-1,1,1);
@@ -153,7 +170,7 @@ void triangle(Vec2i p1, Vec2i p2, Vec2i p3, TGAImage &image, TGAColor color){
 */
 
 /**
- *
+ * Creer un triangle à partir de trois points
  * @param p1 Point1
  * @param p2 Point2
  * @param p3 Point3
@@ -162,7 +179,7 @@ void triangle(Vec2i p1, Vec2i p2, Vec2i p3, TGAImage &image, TGAColor color){
  * @param color couleur du triangle
  */
 
-void triangle(Vec3i p1,Vec3i p2,Vec3i p3,float *zbuffer, Vec3f ptsTexture[3],TGAImage &image, float intensity) {
+void triangle(Vec3i p1,Vec3i p2,Vec3i p3,float *zbuffer, Vec3f ptsTexture[3],Vec3f vecnorm[3],TGAImage &image, float intensity) {
 
     Vec3i pts[3] = {p1,p2,p3};
 
@@ -188,10 +205,17 @@ void triangle(Vec3i p1,Vec3i p2,Vec3i p3,float *zbuffer, Vec3f ptsTexture[3],TGA
 
                 double u = bc_screen[0]*ptsTexture[0].x + bc_screen[1]*ptsTexture[1].x + bc_screen[2]*ptsTexture[2].x;
                 double v = bc_screen[0]*ptsTexture[0].y + bc_screen[1]*ptsTexture[1].y + bc_screen[2]*ptsTexture[2].y;
+                
+                double nx = bc_screen[0]*vecnorm[0].x + bc_screen[1]*vecnorm[1].x + bc_screen[2]*vecnorm[2].x;
+                double ny = bc_screen[0]*vecnorm[0].y + bc_screen[1]*vecnorm[1].y + bc_screen[2]*vecnorm[2].y;
+                double nz = bc_screen[0]*vecnorm[0].z + bc_screen[1]*vecnorm[1].z + bc_screen[2]*vecnorm[2].z;
+                
+                Vec3f n = Vec3f(nx,ny,nz).normalize();
+                double intensity2 = -(n*light_dir);
 
                 TGAColor color = texture.get(u*texture.get_width(),v*texture.get_height());
                 //TGAColor color = TGAColor(255,255,255);
-                image.set(P.x, P.y, color*intensity);
+                image.set(P.x, P.y, color*intensity2);
             }
         }
     }
@@ -223,6 +247,8 @@ int main(int argc, char** argv) {
         Vec3f v[3];
 
         Vec3f ptsTexture[3];
+        
+        Vec3f vecnorm[3];
 
         Vec3i screen_coords[3];
         Vec3f screen_coords_f[3];
@@ -234,6 +260,8 @@ int main(int argc, char** argv) {
             screen_coords_f[j] = m2v(ViewPort*Projection*v2m(v[j]),"");
 
             ptsTexture[j] = objet->getTexture(listTexture[j]);
+            
+            vecnorm[j] = objet->norm(i,j);
 
         }
 
@@ -242,7 +270,7 @@ int main(int argc, char** argv) {
         n.normalize();
         float intensity = n *light_dir;
 
-            triangle(screen_coords[0], screen_coords[1], screen_coords[2],zbuffer, ptsTexture,image,intensity);
+            triangle(screen_coords[0], screen_coords[1], screen_coords[2],zbuffer, ptsTexture, vecnorm ,image,intensity);
     }
     image.write_tga_file("output.tga");
 
